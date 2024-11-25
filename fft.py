@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -147,7 +148,7 @@ def main():
     
     # Perform requested mode
     if mode == 1:
-        dft.display_fft()
+        dft.plot_fft()
     elif mode == 2:
         dft.plot_denoise()
     elif mode == 3:
