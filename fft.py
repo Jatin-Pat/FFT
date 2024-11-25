@@ -147,7 +147,7 @@ def main():
     
     # Perform requested mode
     if mode == 1:
-        dft.display_fft()
+        dft.plot_fft()
     elif mode == 2:
         dft.plot_denoise()
     elif mode == 3:
