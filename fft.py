@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import cv2
 import argparse
+import time
 
 class DiscreteFourierTransform:
     def __init__(self, image):
@@ -93,8 +94,58 @@ class DiscreteFourierTransform:
         return col_transformed_image
     
     def plot_compression(self):
-        return 0
+        frequency_domain = self.fft_2d()
+        magnitude = np.abs(frequency_domain)
+        compression_levels = [1.0, 0.5, 0.1, 0.05, 0.01, 0.001]
+        compressed_images = []
+
+        for level in compression_levels:
+            threshold = np.quantile(magnitude, 1 - level)
+            compressed_frequency = frequency_domain * (magnitude >= threshold)
+            compressed_image = self.ifft_2d(compressed_frequency)
+            compressed_image = np.real(compressed_image[:self.original_image.shape[0], :self.original_image.shape[1]])
+            compressed_images.append(compressed_image)
+        
+        fig, axs = plt.subplots(2, 3, figsize=(12, 8))
+        for i, (ax, img) in enumerate(zip(axs.flatten(), compressed_images)):
+            ax.imshow(img, cmap='gray')
+            ax.set_title(f'{int((1 - compression_levels[i]) * 100)}% Compressed')
+            ax.axis('off')
+        plt.tight_layout()
+        plt.show()
     
+    def plot_runtime(self):
+        sizes = [2**i for i in range(5, 11)]
+        dft_times = []
+        fft_times = []
+
+        for size in sizes:
+            signal = np.random.random(size)
+            start = time.time()
+            self.dft(signal)
+            dft_times.append(time.time() - start)
+
+            start = time.time()
+            self.fft(signal)
+            fft_times.append(time.time() - start)
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(sizes, dft_times, label='Naive DFT', marker='o')
+        plt.plot(sizes, fft_times, label='FFT', marker='o')
+        plt.xlabel('Input Size')
+        plt.ylabel('Time (seconds)')
+        plt.title('Runtime Comparison: Naive DFT vs. FFT')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+    
+    def validate_against_numpy(self):
+        numpy_fft = np.fft.fft2(self.resized_image)
+        custom_fft = self.fft_2d()
+        difference = np.abs(numpy_fft - custom_fft)
+        max_diff = np.max(difference)
+        print(f"Max difference between numpy.fft2 and custom fft_2d: {max_diff}")
+
     def plot_denoise(self):
         frequency_domaine = self.fft_2d()
 
@@ -141,7 +192,12 @@ def main():
     filename = args.i
     
     # Read the image in grayscale
-    image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+    try:
+        image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise ValueError(f"Cannot read the image file: {filename}")
+    except Exception:
+        raise ValueError(f"Cannot read the image file: {filename}")
     
     dft = DiscreteFourierTransform(image)
     
